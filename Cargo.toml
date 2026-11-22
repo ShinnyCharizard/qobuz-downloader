@@ -1,0 +1,32 @@
+[package]
+name = "qobuz-downloader"
+version = "1.0.3"
+edition = "2021"
+license = "GPL-3.0-or-later"
+publish = false
+
+[[bin]]
+name = "plugin"
+path = "src/main.rs"
+
+[dependencies]
+qobuz-api = { path = "crates/qobuz-api" }
+qobuz-models = { path = "crates/qobuz-models" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "io-util", "sync", "time", "net"] }
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "json", "stream", "query"] }
+regex = "1"
+base64 = "0.23"
+url = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
+zeroize = { version = "1", features = ["derive"] }
+tempfile = "3"
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs"] }
+
+[workspace]
+members = ["crates/qobuz-api", "crates/qobuz-models", "crates/media-core"]
+resolver = "2"
+
+[profile.release]
+strip = true

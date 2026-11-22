@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""Exercise the packaged worker without an account or a real download."""
+import argparse
+import json
+from pathlib import Path
+import selectors
+import subprocess
+import tempfile
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("binary", type=Path)
+options = parser.parse_args()
+
+with tempfile.TemporaryDirectory(prefix="purchase-plugin-smoke-") as profile:
+    cache = Path(profile) / "cache"
+    cache.mkdir()
+    directories = {"data_dir":profile, "cache_dir":str(cache)}
+    child = subprocess.Popen([str(options.binary.resolve())],
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, text=True)
+    selector = selectors.DefaultSelector()
+    selector.register(child.stdout, selectors.EVENT_READ)
+    sequence = 0
+
+    def call(method, params=None, error=False):
+        global sequence
+        sequence += 1
+        child.stdin.write(json.dumps({"jsonrpc": "2.0", "id": sequence,
+                                      "method": method, "params": params or {}}) + "\n")
+        child.stdin.flush()
+        if not selector.select(10):
+            raise RuntimeError("The packaged worker did not answer")
+        response = json.loads(child.stdout.readline())
+        assert response.get("id") == sequence
+        assert ("error" in response) == error
+        return response.get("error" if error else "result")
+
+    try:
+        child.stdin.write("not-json\n")
+        child.stdin.flush()
+        greeting = call("initialize", {**directories, "locale": "en"})
+        assert greeting == {"protocol": 1, "capabilities": {
+            "settings": True, "auth": "browser", "downloads": True}}
+        assert not call("auth.status")["signed_in"]
+        view = call("downloads.open")
+        assert not view["signed_in"] and not view["working"]
+        assert not view["destination_ready"]
+        assert view["albums"] == [] and view["tracks"] == []
+        call("downloads.action", {"action": "download", "format_id": 6}, error=True)
+        form = call("settings.open")
+        assert all(f["control"]["type"] == "secret" for f in form["form"]["fields"])
+        fixture = {"app_id": "123456789", "app_secret": "0123456789abcdef0123456789abcdef",
+                   "private_key": "fixturekey"}
+        shown = call("settings.submit", {"revision": form["revision"],
+                     "action": "visibility_1", "values": fixture})
+        assert shown["form"]["fields"][1]["control"]["type"] == "text"
+        form = call("settings.open")
+        assert all(f["control"]["type"] == "secret" for f in form["form"]["fields"])
+        pending = call("settings.submit", {"revision": form["revision"],
+                       "action": "sign_in", "values": fixture})
+        assert pending["links"] and pending["values"] == {}
+        call("settings.submit", {"revision": pending["revision"], "action": "cancel_sign_in"})
+        assert not call("auth.status")["pending"]
+        call("unknown.operation", error=True)
+        assert call("initialize", directories)["protocol"] == 1
+        assert not list(Path(profile).glob("*.part"))
+        print("PASS: packaged RPC, empty account, masked fields, browser attempt/cancellation, denied downloads, malformed input and unknown methods")
+    finally:
+        child.stdin.close()
+        try:
+            child.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            child.kill()
+            child.wait()
+        selector.close()

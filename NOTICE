@@ -1,0 +1,15 @@
+I derive the local API client and data types from QBZ commit
+455441014b38e27b1d0c4054e04e6a66aa2753db (MIT, copyright 2024 blitzkriegfc).
+I retain the upstream MIT license in each derived crate.
+I adapt QBZ's purchase format, file naming, signed download, and staged file
+handling from `qbz-offline-cache` under the same MIT license.
+
+I exclude QBZ account login, bundle credential extraction, delegated sessions
+and Qobuz Connect. I retain API request signing, catalog, search, recommendations,
+playlists, favorites, purchases, lyrics and audio resolution, including CMAF.
+
+I adapt the credential-discovery and browser-authentication behavior from
+Strawberry commit aa2ba5109b1fbc9a1fe4de096644e5713b434f3b.
+Strawberry copyright 2019-2026 Jonas Kvinge <jonas@jkvinge.net>.
+I distribute the plugin under GPL-3.0-or-later; see COPYING. The local QBZ
+crates retain their MIT license.

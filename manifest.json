@@ -1,0 +1,31 @@
+{
+  "id": "io.github.dovepants.qobuz-downloader",
+  "name": "Qobuz Purchase Downloader",
+  "version": "1.0.3",
+  "api_version": 1,
+  "kind": "source",
+  "runtime": "process",
+  "description": "Download music purchased from Qobuz without a streaming subscription.",
+  "icon": "icon.svg",
+  "capabilities": [
+    {
+      "type": "network",
+      "domains": [
+        "www.qobuz.com",
+        "play.qobuz.com",
+        "download-v2.qobuz.com",
+        "streaming-qobuz-std.akamaized.net",
+        "static.qobuz.com",
+        "d12eggcejhfkay.cloudfront.net"
+      ]
+    },
+    {
+      "type": "folder_write"
+    },
+    {
+      "type": "own_account",
+      "keyring": false
+    }
+  ],
+  "author": "ShinnyCharizard"
+}
